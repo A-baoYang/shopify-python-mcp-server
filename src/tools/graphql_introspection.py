@@ -22,9 +22,9 @@ async def get_schema(api: str, version: str, schemas: list[Schema]) -> Schema:
         f"{schema.api} ({schema.version})" for schema in schemas
     )
     
+    version_str = f' version "{version}"' if version else ""
     raise ValueError(
-        f'Schema configuration for API "{api}"'
-        f'{f\' version "{version}"\' if version else ""} not found in provided schemas. '
+        f'Schema configuration for API "{api}"{version_str} not found in provided schemas. '
         f'Currently supported schemas: {supported_schemas}'
     )
 

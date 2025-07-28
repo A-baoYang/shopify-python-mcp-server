@@ -6,11 +6,11 @@ from typing import Any
 from fastmcp import FastMCP
 
 from src.settings import PACKAGE_VERSION, SERVER_NAME
-from src.tools.api_tools import fetch_getting_started_apis, learn_shopify_api
-from src.tools.graphql_introspection import introspect_graphql_schema
+from src.tools import api_tools
+from src.tools import graphql_introspection
 from src.tools.schemas import fetch_graphql_schemas
-from src.tools.search import fetch_full_docs, search_docs_chunks
-from src.tools.validation_tools import validate_graphql_codeblocks
+from src.tools import search
+from src.tools import validation_tools
 from src.types import (
     FetchDocsParams,
     IntrospectGraphQLParams,
@@ -71,7 +71,7 @@ async def search_docs_chunks(
         prompt=prompt,
         max_num_results=max_num_results,
     )
-    result = await search_docs_chunks(params)
+    result = await search.search_docs_chunks(params)
     return result["content"][0]["text"]
 
 
@@ -95,7 +95,7 @@ async def fetch_full_docs(
         conversationId=conversationId,
         paths=paths,
     )
-    result = await fetch_full_docs(params)
+    result = await search.fetch_full_docs(params)
     return result["content"][0]["text"]
 
 
@@ -136,7 +136,7 @@ async def introspect_graphql_schema(
         version=version,
     )
     
-    result = await introspect_graphql_schema(params, schemas_data["schemas"])
+    result = await graphql_introspection.introspect_graphql_schema(params, schemas_data["schemas"])
     return result["content"][0]["text"]
 
 
@@ -174,7 +174,7 @@ async def validate_graphql_codeblocks(
         codeblocks=codeblocks,
     )
     
-    result = await validate_graphql_codeblocks(params, schemas_data["schemas"])
+    result = await validation_tools.validate_graphql_codeblocks(params, schemas_data["schemas"])
     return result["content"][0]["text"]
 
 
@@ -197,7 +197,7 @@ async def learn_shopify_api(
         API documentation and REQUIRED conversationId
     """
     # Get available APIs
-    apis = await fetch_getting_started_apis()
+    apis = await api_tools.fetch_getting_started_apis()
     api_names = [a.name for a in apis]
     
     # Validate API name
@@ -209,7 +209,7 @@ async def learn_shopify_api(
         conversationId=conversationId,
     )
     
-    result = await learn_shopify_api(params)
+    result = await api_tools.learn_shopify_api(params)
     return result["content"][0]["text"]
 
 
@@ -256,12 +256,25 @@ The GraphQL operation should be ready to use with minimal modification.""",
 
 def main():
     """Run the MCP server."""
-    # Print server info
-    print(f"Starting {SERVER_NAME} v{PACKAGE_VERSION}")
-    print(f"Using Shopify Dev URL: {os.getenv('DEV', 'https://shopify.dev/')}")
+    import sys
     
-    # Run the server
-    mcp.run()
+    # Print server info
+    print(f"Starting {SERVER_NAME} v{PACKAGE_VERSION}", file=sys.stderr)
+    print(f"Using Shopify Dev URL: {os.getenv('DEV', 'https://shopify.dev/')}", file=sys.stderr)
+    
+    # Check if we want HTTP mode
+    if "--http" in sys.argv:
+        port = 8080
+        for i, arg in enumerate(sys.argv):
+            if arg == "--port" and i + 1 < len(sys.argv):
+                port = int(sys.argv[i + 1])
+        
+        print(f"Starting HTTP server on port {port}", file=sys.stderr)
+        mcp.run(transport="http", port=port)
+    else:
+        # Default stdio mode for MCP clients
+        print("Starting in stdio mode for MCP clients", file=sys.stderr)
+        mcp.run()
 
 
 if __name__ == "__main__":
